@@ -82,8 +82,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#working-with-data" id="toc-working-with-data" class="nav-link active" data-scroll-target="#working-with-data">Working with Data</a></li>
-  <li><a href="#exploring-our-data" id="toc-exploring-our-data" class="nav-link" data-scroll-target="#exploring-our-data">Exploring Our Data</a></li>
+  <li><a href="#exploring-our-data" id="toc-exploring-our-data" class="nav-link" data-scroll-target="#exploring-our-data">Exploring Our Data</a>
+  <ul class="collapse">
   <li><a href="#joining-the-data" id="toc-joining-the-data" class="nav-link" data-scroll-target="#joining-the-data">Joining the Data</a></li>
+  </ul></li>
+  <li><a href="#exploratory-data-analysis" id="toc-exploratory-data-analysis" class="nav-link" data-scroll-target="#exploratory-data-analysis">Exploratory Data Analysis</a>
+  <ul class="collapse">
+  <li><a href="#summary-statistics" id="toc-summary-statistics" class="nav-link" data-scroll-target="#summary-statistics">Summary Statistics</a></li>
+  <li><a href="#data-visualization" id="toc-data-visualization" class="nav-link" data-scroll-target="#data-visualization">Data Visualization</a></li>
+  </ul></li>
   </ul>
 </nav>
 </div>
@@ -122,7 +129,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">January 13, 2025</p>
+      <p class="date-modified">January 15, 2025</p>
     </div>
   </div>
     
@@ -171,11 +178,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 ✖ dplyr::lag()      masks stats::lag()
 ✖ yardstick::spec() masks readr::spec()
 ✖ recipes::step()   masks stats::step()
-• Dig deeper into tidy modeling with R at https://www.tmwr.org</code></pre>
+• Learn how to get started at https://www.tidymodels.org/start/</code></pre>
 </div>
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>hits <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"https://raw.githubusercontent.com/agmath/agmath.github.io/refs/heads/master/data/classification/battedballs.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(skimr)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggmosaic)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>hits <span class="ot">&lt;-</span> <span class="fu">read_csv</span>(<span class="st">"https://raw.githubusercontent.com/agmath/agmath.github.io/refs/heads/master/data/classification/battedballs.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stderr">
 <pre><code>Rows: 13000 Columns: 25
@@ -250,9 +260,8 @@ dbl (7): park, LF_Dim, CF_Dim, RF_Dim, LF_W, CF_W, RF_W
 6     5 Great American Ballpark     Outd…    328    404    325    12     8     8</code></pre>
 </div>
 </div>
-</section>
-<section id="joining-the-data" class="level2">
-<h2 class="anchored" data-anchor-id="joining-the-data">Joining the Data</h2>
+<section id="joining-the-data" class="level3">
+<h3 class="anchored" data-anchor-id="joining-the-data">Joining the Data</h3>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -261,6 +270,887 @@ dbl (7): park, LF_Dim, CF_Dim, RF_Dim, LF_W, CF_W, RF_W
 </details>
 </div>
 <p>We joined the <code>hits</code> and <code>parks</code> data together, to obtain a full data set with 13000 rows and 33 columns.</p>
+<p>Initial Explorations</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>hits <span class="sc">%&gt;%</span> </span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 33
+   bip_id game_date  home_team away_team batter_team batter_name    pitcher_name
+    &lt;dbl&gt; &lt;date&gt;     &lt;chr&gt;     &lt;chr&gt;     &lt;chr&gt;       &lt;chr&gt;          &lt;chr&gt;       
+ 1  61093 2020-09-11 TB        BOS       BOS         bogaerts, xan… snell, blake
+ 2 117924 2020-08-31 CIN       STL       STL         edman, tommy   lorenzen, m…
+ 3  84178 2020-09-12 WSH       ATL       WSH         soto, juan     anderson, i…
+ 4  25265 2020-09-04 CLE       MIL       CLE         lindor, franc… burnes, cor…
+ 5 117768 2020-08-25 STL       KC        STL         wong, kolten   newberry, j…
+ 6  54097 2020-08-23 STL       CIN       CIN         ervin, phil    reyes, alex 
+ 7  58175 2020-09-25 CWS       CHC       CWS         grandal, yasm… darvish, yu 
+ 8 118766 2020-07-26 CWS       MIN       MIN         cruz, nelson   gonzalez, g…
+ 9  11349 2020-10-11 TB        HOU       TB          zunino, mike   valdez, fra…
+10  61080 2020-09-11 TB        BOS       BOS         bradley, jack… snell, blake
+# ℹ 26 more variables: batter_id &lt;dbl&gt;, pitcher_id &lt;dbl&gt;,
+#   is_batter_lefty &lt;dbl&gt;, is_pitcher_lefty &lt;dbl&gt;, bb_type &lt;chr&gt;,
+#   bearing &lt;chr&gt;, pitch_name &lt;chr&gt;, park &lt;dbl&gt;, inning &lt;dbl&gt;,
+#   outs_when_up &lt;dbl&gt;, balls &lt;dbl&gt;, strikes &lt;dbl&gt;, plate_x &lt;dbl&gt;,
+#   plate_z &lt;dbl&gt;, pitch_mph &lt;dbl&gt;, launch_speed &lt;dbl&gt;, launch_angle &lt;dbl&gt;,
+#   is_home_run &lt;dbl&gt;, NAME &lt;chr&gt;, Cover &lt;chr&gt;, LF_Dim &lt;dbl&gt;, CF_Dim &lt;dbl&gt;,
+#   RF_Dim &lt;dbl&gt;, LF_W &lt;dbl&gt;, CF_W &lt;dbl&gt;, RF_W &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<p>Skimming the data set</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>hits <span class="sc">%&gt;%</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">skim</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Data summary</caption>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Name</td>
+<td style="text-align: left;">Piped data</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Number of rows</td>
+<td style="text-align: left;">13000</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Number of columns</td>
+<td style="text-align: left;">33</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">_______________________</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Column type frequency:</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">character</td>
+<td style="text-align: left;">10</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Date</td>
+<td style="text-align: left;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">numeric</td>
+<td style="text-align: left;">22</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">________________________</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Group variables</td>
+<td style="text-align: left;">None</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: character</strong></p>
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 19%">
+<col style="width: 13%">
+<col style="width: 19%">
+<col style="width: 5%">
+<col style="width: 5%">
+<col style="width: 8%">
+<col style="width: 12%">
+<col style="width: 15%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">skim_variable</th>
+<th style="text-align: right;">n_missing</th>
+<th style="text-align: right;">complete_rate</th>
+<th style="text-align: right;">min</th>
+<th style="text-align: right;">max</th>
+<th style="text-align: right;">empty</th>
+<th style="text-align: right;">n_unique</th>
+<th style="text-align: right;">whitespace</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">home_team</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">away_team</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">batter_team</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">batter_name</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">561</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">pitcher_name</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">709</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">bb_type</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">bearing</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">pitch_name</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">NAME</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">27</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Cover</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: Date</strong></p>
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 17%">
+<col style="width: 12%">
+<col style="width: 17%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 11%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">skim_variable</th>
+<th style="text-align: right;">n_missing</th>
+<th style="text-align: right;">complete_rate</th>
+<th style="text-align: left;">min</th>
+<th style="text-align: left;">max</th>
+<th style="text-align: left;">median</th>
+<th style="text-align: right;">n_unique</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">game_date</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: left;">2020-07-23</td>
+<td style="text-align: left;">2020-10-27</td>
+<td style="text-align: left;">2020-08-29</td>
+<td style="text-align: right;">90</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: numeric</strong></p>
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 14%">
+<col style="width: 8%">
+<col style="width: 12%">
+<col style="width: 8%">
+<col style="width: 7%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 5%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">skim_variable</th>
+<th style="text-align: right;">n_missing</th>
+<th style="text-align: right;">complete_rate</th>
+<th style="text-align: right;">mean</th>
+<th style="text-align: right;">sd</th>
+<th style="text-align: right;">p0</th>
+<th style="text-align: right;">p25</th>
+<th style="text-align: right;">p50</th>
+<th style="text-align: right;">p75</th>
+<th style="text-align: right;">p100</th>
+<th style="text-align: left;">hist</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">bip_id</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">61810.38</td>
+<td style="text-align: right;">37071.39</td>
+<td style="text-align: right;">11.00</td>
+<td style="text-align: right;">27645.25</td>
+<td style="text-align: right;">64242.50</td>
+<td style="text-align: right;">94613.75</td>
+<td style="text-align: right;">119517.00</td>
+<td style="text-align: left;">▇▆▆▆▇</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">batter_id</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">586622.68</td>
+<td style="text-align: right;">65484.91</td>
+<td style="text-align: right;">405395.00</td>
+<td style="text-align: right;">543685.00</td>
+<td style="text-align: right;">596146.00</td>
+<td style="text-align: right;">642086.00</td>
+<td style="text-align: right;">680777.00</td>
+<td style="text-align: left;">▂▂▃▇▆</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">pitcher_id</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">591536.36</td>
+<td style="text-align: right;">65748.18</td>
+<td style="text-align: right;">424144.00</td>
+<td style="text-align: right;">543901.00</td>
+<td style="text-align: right;">605513.00</td>
+<td style="text-align: right;">643256.00</td>
+<td style="text-align: right;">685493.00</td>
+<td style="text-align: left;">▂▂▃▇▇</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">is_batter_lefty</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">0.42</td>
+<td style="text-align: right;">0.49</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: left;">▇▁▁▁▆</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">is_pitcher_lefty</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">0.27</td>
+<td style="text-align: right;">0.45</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: left;">▇▁▁▁▃</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">park</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">14.45</td>
+<td style="text-align: right;">8.69</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">7.00</td>
+<td style="text-align: right;">14.00</td>
+<td style="text-align: right;">22.00</td>
+<td style="text-align: right;">29.00</td>
+<td style="text-align: left;">▇▇▇▇▇</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">inning</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">4.81</td>
+<td style="text-align: right;">2.52</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">3.00</td>
+<td style="text-align: right;">5.00</td>
+<td style="text-align: right;">7.00</td>
+<td style="text-align: right;">13.00</td>
+<td style="text-align: left;">▇▆▇▂▁</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">outs_when_up</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">0.95</td>
+<td style="text-align: right;">0.82</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">2.00</td>
+<td style="text-align: right;">2.00</td>
+<td style="text-align: left;">▇▁▇▁▇</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">balls</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">1.12</td>
+<td style="text-align: right;">1.02</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">2.00</td>
+<td style="text-align: right;">3.00</td>
+<td style="text-align: left;">▇▇▁▅▃</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">strikes</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">1.11</td>
+<td style="text-align: right;">0.81</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">2.00</td>
+<td style="text-align: right;">2.00</td>
+<td style="text-align: left;">▆▁▇▁▇</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">plate_x</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">-0.01</td>
+<td style="text-align: right;">0.55</td>
+<td style="text-align: right;">-2.06</td>
+<td style="text-align: right;">-0.40</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.38</td>
+<td style="text-align: right;">1.95</td>
+<td style="text-align: left;">▁▃▇▅▁</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">plate_z</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">2.32</td>
+<td style="text-align: right;">0.57</td>
+<td style="text-align: right;">0.42</td>
+<td style="text-align: right;">1.93</td>
+<td style="text-align: right;">2.32</td>
+<td style="text-align: right;">2.72</td>
+<td style="text-align: right;">4.74</td>
+<td style="text-align: left;">▁▆▇▂▁</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">pitch_mph</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">88.88</td>
+<td style="text-align: right;">5.90</td>
+<td style="text-align: right;">70.00</td>
+<td style="text-align: right;">84.70</td>
+<td style="text-align: right;">89.80</td>
+<td style="text-align: right;">93.60</td>
+<td style="text-align: right;">102.80</td>
+<td style="text-align: left;">▁▃▆▇▂</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">launch_speed</td>
+<td style="text-align: right;">3364</td>
+<td style="text-align: right;">0.74</td>
+<td style="text-align: right;">88.03</td>
+<td style="text-align: right;">14.57</td>
+<td style="text-align: right;">7.50</td>
+<td style="text-align: right;">79.80</td>
+<td style="text-align: right;">90.70</td>
+<td style="text-align: right;">98.90</td>
+<td style="text-align: right;">117.30</td>
+<td style="text-align: left;">▁▁▂▇▆</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">launch_angle</td>
+<td style="text-align: right;">3312</td>
+<td style="text-align: right;">0.75</td>
+<td style="text-align: right;">12.49</td>
+<td style="text-align: right;">28.85</td>
+<td style="text-align: right;">-87.00</td>
+<td style="text-align: right;">-6.00</td>
+<td style="text-align: right;">14.00</td>
+<td style="text-align: right;">31.00</td>
+<td style="text-align: right;">89.00</td>
+<td style="text-align: left;">▁▂▇▆▂</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">is_home_run</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">0.05</td>
+<td style="text-align: right;">0.23</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: left;">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LF_Dim</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">331.40</td>
+<td style="text-align: right;">9.78</td>
+<td style="text-align: right;">310.00</td>
+<td style="text-align: right;">328.00</td>
+<td style="text-align: right;">330.00</td>
+<td style="text-align: right;">336.00</td>
+<td style="text-align: right;">355.00</td>
+<td style="text-align: left;">▂▃▇▂▁</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">CF_Dim</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">402.98</td>
+<td style="text-align: right;">5.65</td>
+<td style="text-align: right;">390.00</td>
+<td style="text-align: right;">400.00</td>
+<td style="text-align: right;">401.00</td>
+<td style="text-align: right;">407.00</td>
+<td style="text-align: right;">420.00</td>
+<td style="text-align: left;">▁▇▅▁▁</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">RF_Dim</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">328.06</td>
+<td style="text-align: right;">10.30</td>
+<td style="text-align: right;">302.00</td>
+<td style="text-align: right;">325.00</td>
+<td style="text-align: right;">328.00</td>
+<td style="text-align: right;">335.00</td>
+<td style="text-align: right;">353.00</td>
+<td style="text-align: left;">▁▂▇▂▂</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LF_W</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">10.25</td>
+<td style="text-align: right;">6.48</td>
+<td style="text-align: right;">4.00</td>
+<td style="text-align: right;">7.00</td>
+<td style="text-align: right;">8.00</td>
+<td style="text-align: right;">11.00</td>
+<td style="text-align: right;">37.00</td>
+<td style="text-align: left;">▇▂▁▁▁</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">CF_W</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">9.38</td>
+<td style="text-align: right;">3.64</td>
+<td style="text-align: right;">6.00</td>
+<td style="text-align: right;">8.00</td>
+<td style="text-align: right;">8.00</td>
+<td style="text-align: right;">9.00</td>
+<td style="text-align: right;">25.00</td>
+<td style="text-align: left;">▇▂▁▁▁</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">RF_W</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">1.00</td>
+<td style="text-align: right;">10.87</td>
+<td style="text-align: right;">5.55</td>
+<td style="text-align: right;">3.00</td>
+<td style="text-align: right;">8.00</td>
+<td style="text-align: right;">8.00</td>
+<td style="text-align: right;">14.00</td>
+<td style="text-align: right;">25.00</td>
+<td style="text-align: left;">▃▇▃▁▂</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Split into training and test data</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>data_splits <span class="ot">&lt;-</span> <span class="fu">initial_split</span>(hits, <span class="fl">0.85</span>, <span class="at">strata =</span> is_home_run)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>train <span class="ot">&lt;-</span> <span class="fu">training</span>(data_splits)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>test <span class="ot">&lt;-</span> <span class="fu">testing</span>(data_splits)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+</section>
+<section id="exploratory-data-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="exploratory-data-analysis">Exploratory Data Analysis</h2>
+<p>How and why do home runs happen?</p>
+<p>Filtering rows</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>train <span class="sc">%&gt;%</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(is_home_run <span class="sc">==</span> <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 607 × 33
+   bip_id game_date  home_team away_team batter_team batter_name    pitcher_name
+    &lt;dbl&gt; &lt;date&gt;     &lt;chr&gt;     &lt;chr&gt;     &lt;chr&gt;       &lt;chr&gt;          &lt;chr&gt;       
+ 1  26018 2020-09-14 MIA       PHI       PHI         kingery, scott boxberger, …
+ 2  63561 2020-09-17 TB        BAL       BAL         alberto, hans… richards, t…
+ 3 115167 2020-09-11 NYY       BAL       NYY         voit, luke     wojciechows…
+ 4  51861 2020-09-13 TOR       NYM       TOR         gurriel, lour… peterson, d…
+ 5  53127 2020-08-31 NYM       MIA       NYM         cano, robinson vesia, alex 
+ 6  61906 2020-08-15 CHC       MIL       CHC         souza, steven  knebel, cor…
+ 7 111834 2020-08-23 PIT       MIL       MIL         smoak, justin  hartlieb, g…
+ 8  41559 2020-10-15 ATL       LAD       LAD         rios, edwin    wilson, bry…
+ 9  99107 2020-09-22 TOR       NYY       TOR         biggio, cavan  cole, gerrit
+10  26757 2020-10-07 ATL       MIA       ATL         swanson, dans… lopez, pablo
+# ℹ 597 more rows
+# ℹ 26 more variables: batter_id &lt;dbl&gt;, pitcher_id &lt;dbl&gt;,
+#   is_batter_lefty &lt;dbl&gt;, is_pitcher_lefty &lt;dbl&gt;, bb_type &lt;chr&gt;,
+#   bearing &lt;chr&gt;, pitch_name &lt;chr&gt;, park &lt;dbl&gt;, inning &lt;dbl&gt;,
+#   outs_when_up &lt;dbl&gt;, balls &lt;dbl&gt;, strikes &lt;dbl&gt;, plate_x &lt;dbl&gt;,
+#   plate_z &lt;dbl&gt;, pitch_mph &lt;dbl&gt;, launch_speed &lt;dbl&gt;, launch_angle &lt;dbl&gt;,
+#   is_home_run &lt;dbl&gt;, NAME &lt;chr&gt;, Cover &lt;chr&gt;, LF_Dim &lt;dbl&gt;, CF_Dim &lt;dbl&gt;, …</code></pre>
+</div>
+</div>
+<p>Selecting just a few columns</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>train <span class="sc">%&gt;%</span> </span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(launch_speed, launch_angle, is_home_run)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 11,050 × 3
+   launch_speed launch_angle is_home_run
+          &lt;dbl&gt;        &lt;dbl&gt;       &lt;dbl&gt;
+ 1         58.5          -47           0
+ 2         NA             -8           0
+ 3         71.9           NA           0
+ 4         71.5           10           0
+ 5         97.2           23           0
+ 6         NA             54           0
+ 7         86.5           NA           0
+ 8         83.4           14           0
+ 9        106.            18           0
+10         86.9          -11           0
+# ℹ 11,040 more rows</code></pre>
+</div>
+</div>
+<p>Building new variables from old ones (<em>Feature Engineering</em>)</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>train <span class="sc">%&gt;%</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">fast_pitch =</span> <span class="fu">ifelse</span>(pitch_mph <span class="sc">&gt;</span> <span class="dv">100</span>, <span class="st">"yes"</span>, <span class="st">"no"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 11,050 × 34
+   bip_id game_date  home_team away_team batter_team batter_name    pitcher_name
+    &lt;dbl&gt; &lt;date&gt;     &lt;chr&gt;     &lt;chr&gt;     &lt;chr&gt;       &lt;chr&gt;          &lt;chr&gt;       
+ 1  61093 2020-09-11 TB        BOS       BOS         bogaerts, xan… snell, blake
+ 2 117924 2020-08-31 CIN       STL       STL         edman, tommy   lorenzen, m…
+ 3  84178 2020-09-12 WSH       ATL       WSH         soto, juan     anderson, i…
+ 4  25265 2020-09-04 CLE       MIL       CLE         lindor, franc… burnes, cor…
+ 5 117768 2020-08-25 STL       KC        STL         wong, kolten   newberry, j…
+ 6  54097 2020-08-23 STL       CIN       CIN         ervin, phil    reyes, alex 
+ 7  58175 2020-09-25 CWS       CHC       CWS         grandal, yasm… darvish, yu 
+ 8  11349 2020-10-11 TB        HOU       TB          zunino, mike   valdez, fra…
+ 9  61080 2020-09-11 TB        BOS       BOS         bradley, jack… snell, blake
+10   2652 2020-08-23 SEA       TEX       SEA         bishop, braden minor, mike 
+# ℹ 11,040 more rows
+# ℹ 27 more variables: batter_id &lt;dbl&gt;, pitcher_id &lt;dbl&gt;,
+#   is_batter_lefty &lt;dbl&gt;, is_pitcher_lefty &lt;dbl&gt;, bb_type &lt;chr&gt;,
+#   bearing &lt;chr&gt;, pitch_name &lt;chr&gt;, park &lt;dbl&gt;, inning &lt;dbl&gt;,
+#   outs_when_up &lt;dbl&gt;, balls &lt;dbl&gt;, strikes &lt;dbl&gt;, plate_x &lt;dbl&gt;,
+#   plate_z &lt;dbl&gt;, pitch_mph &lt;dbl&gt;, launch_speed &lt;dbl&gt;, launch_angle &lt;dbl&gt;,
+#   is_home_run &lt;dbl&gt;, NAME &lt;chr&gt;, Cover &lt;chr&gt;, LF_Dim &lt;dbl&gt;, CF_Dim &lt;dbl&gt;, …</code></pre>
+</div>
+</div>
+<section id="summary-statistics" class="level3">
+<h3 class="anchored" data-anchor-id="summary-statistics">Summary Statistics</h3>
+<p>Home runs…</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>train <span class="sc">%&gt;%</span> </span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">count</span>(is_home_run) <span class="sc">%&gt;%</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">prop =</span> n<span class="sc">/</span><span class="fu">sum</span>(n))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 3
+  is_home_run     n   prop
+        &lt;dbl&gt; &lt;int&gt;  &lt;dbl&gt;
+1           0 10443 0.945 
+2           1   607 0.0549</code></pre>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>train <span class="sc">%&gt;%</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">pct_hr =</span> <span class="fu">mean</span>(is_home_run))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 1
+  pct_hr
+   &lt;dbl&gt;
+1 0.0549</code></pre>
+</div>
+</div>
+<p>Summarizing Launch Angle…</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>train <span class="sc">%&gt;%</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="do">##filter(!is.na(launch_angle)) %&gt;%</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">min_angle =</span> <span class="fu">min</span>(launch_angle, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), </span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_angle =</span> <span class="fu">mean</span>(launch_angle, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">median_angle =</span> <span class="fu">median</span>(launch_angle, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">max_angle =</span> <span class="fu">max</span>(launch_angle, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd_angle =</span> <span class="fu">sd</span>(launch_angle, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 1 × 5
+  min_angle mean_angle median_angle max_angle sd_angle
+      &lt;dbl&gt;      &lt;dbl&gt;        &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+1       -87       12.3           13        89     29.0</code></pre>
+</div>
+</div>
+<section id="grouped-summaries" class="level4">
+<h4 class="anchored" data-anchor-id="grouped-summaries">Grouped Summaries</h4>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>train <span class="sc">%&gt;%</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(is_home_run) <span class="sc">%&gt;%</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="do">##filter(!is.na(launch_angle)) %&gt;%</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">min_angle =</span> <span class="fu">min</span>(launch_angle, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), </span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_angle =</span> <span class="fu">mean</span>(launch_angle, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">median_angle =</span> <span class="fu">median</span>(launch_angle, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">max_angle =</span> <span class="fu">max</span>(launch_angle, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd_angle =</span> <span class="fu">sd</span>(launch_angle, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 2 × 6
+  is_home_run min_angle mean_angle median_angle max_angle sd_angle
+        &lt;dbl&gt;     &lt;dbl&gt;      &lt;dbl&gt;        &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+1           0       -87       11.3           11        89    29.5 
+2           1        15       28.9           28        47     5.31</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="data-visualization" class="level3">
+<h3 class="anchored" data-anchor-id="data-visualization">Data Visualization</h3>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>train <span class="sc">%&gt;%</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="fu">aes</span>(<span class="at">x =</span> is_home_run, <span class="at">fill =</span> is_home_run), <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Home Run Distribution"</span>, <span class="at">x =</span> <span class="st">"Home Run (Yes/No)"</span>, <span class="at">y =</span> <span class="st">"Count"</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following aesthetics were dropped during statistical transformation: fill.
+ℹ This can happen when ggplot fails to infer the correct grouping structure in
+  the data.
+ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+  variable into a factor?</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Quarto434_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>train <span class="sc">%&gt;%</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>() <span class="sc">+</span> </span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="fu">aes</span>(<span class="at">x =</span> launch_angle), <span class="at">fill =</span> <span class="st">"red"</span>) <span class="sc">+</span> </span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Launch Angle"</span>, <span class="at">y =</span> <span class="st">"Density"</span>, <span class="at">title =</span> <span class="st">"Density Plot of Launch Angle"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 2755 rows containing non-finite outside the scale range
+(`stat_density()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Quarto434_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>train <span class="sc">%&gt;%</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="fu">aes</span>(<span class="at">x =</span> pitch_name, <span class="at">fill =</span> <span class="st">"purple"</span>)) <span class="sc">+</span> </span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Pitch Type"</span>, <span class="at">y =</span> <span class="st">""</span>, <span class="at">title =</span> <span class="st">"Distribution of Pitch Types"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Quarto434_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>train <span class="sc">|&gt;</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="fu">aes</span>(<span class="at">x =</span> launch_speed, <span class="at">fill =</span> <span class="st">"blue"</span>)) <span class="sc">+</span> </span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Launch Speed"</span>, <span class="at">y =</span> <span class="st">"Density"</span>, <span class="at">title =</span> <span class="st">"Density Plot of Launch Speed"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 2846 rows containing non-finite outside the scale range
+(`stat_density()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Quarto434_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>train <span class="sc">%&gt;%</span> </span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="fu">aes</span>(<span class="at">y =</span> pitch_name, <span class="at">x =</span> pitch_mph)) <span class="sc">+</span> </span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Pitch Speed"</span>, <span class="at">y =</span> <span class="st">"Pitch Type"</span>, <span class="at">title =</span> <span class="st">"Boxplot of Pitch Speed vs. Pitch Type"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Quarto434_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>train <span class="sc">%&gt;%</span> </span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> pitch_mph)) <span class="sc">+</span> </span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">after_stat</span>(density)), <span class="at">binwidth =</span> <span class="dv">2</span>, <span class="at">fill =</span> <span class="st">"yellow"</span>, <span class="at">alpha =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_density</span>(<span class="fu">aes</span>(<span class="at">color =</span> pitch_name, <span class="at">fill =</span> pitch_name), <span class="at">alpha =</span> <span class="fl">0.4</span>, <span class="at">size =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span> pitch_name)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+ℹ Please use `linewidth` instead.</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Quarto434_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>train <span class="sc">%&gt;%</span> </span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>() <span class="sc">+</span> </span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hex</span>(<span class="fu">aes</span>(<span class="at">x =</span> launch_angle, <span class="at">y =</span> launch_speed)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 4829 rows containing non-finite outside the scale range
+(`stat_binhex()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Quarto434_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
 </section>
 
 </main>

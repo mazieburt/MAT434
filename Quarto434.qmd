@@ -22,6 +22,7 @@ message: false
 library(tidyverse)
 library(tidymodels)
 library(skimr)
+library(ggmosaic)
 
 hits <- read_csv("https://raw.githubusercontent.com/agmath/agmath.github.io/refs/heads/master/data/classification/battedballs.csv")
 
@@ -41,7 +42,7 @@ hits %>%
 parks %>% 
   head()
 ```
-## Joining the Data 
+### Joining the Data 
 ```{r}
 hits <- hits %>%
   left_join(parks, by = c("park" = "park"))
@@ -94,6 +95,9 @@ train %>%
   mutate(fast_pitch = ifelse(pitch_mph > 100, "yes", "no"))
 ```
 
+
+
+
 ### Summary Statistics 
 
 Home runs... 
@@ -136,5 +140,53 @@ train %>%
   )
 ```
 
+### Data Visualization 
+
+```{r}
+train %>%
+  ggplot() +
+  geom_bar(aes(x = is_home_run, fill = is_home_run), color = "black") +
+  labs(title = "Home Run Distribution", x = "Home Run (Yes/No)", y = "Count") 
+```
+
+```{r}
+train %>%
+  ggplot() + 
+  geom_density(aes(x = launch_angle), fill = "red") + 
+  labs(x = "Launch Angle", y = "Density", title = "Density Plot of Launch Angle")
+```
+
+
+```{r}
+train %>%
+  ggplot() +
+  geom_bar(aes(x = pitch_name, fill = "purple")) + 
+  labs(x = "Pitch Type", y = "", title = "Distribution of Pitch Types")
+```
+```{r}
+train |>
+  ggplot() +
+  geom_density(aes(x = launch_speed, fill = "blue")) + 
+  labs(x = "Launch Speed", y = "Density", title = "Density Plot of Launch Speed")
+```
+```{r}
+train %>% 
+  ggplot() +
+  geom_boxplot(aes(y = pitch_name, x = pitch_mph)) + 
+  labs(x = "Pitch Speed", y = "Pitch Type", title = "Boxplot of Pitch Speed vs. Pitch Type")
+```
+
+```{r}
+train %>% 
+  ggplot(aes(x = pitch_mph)) + 
+  geom_histogram(aes(y = after_stat(density)), binwidth = 2, fill = "yellow", alpha = 0.7) +
+  geom_density(aes(color = pitch_name, fill = pitch_name), alpha = 0.4, size = 1) +
+  facet_wrap(~ pitch_name)
+```
+```{r}
+train %>% 
+  ggplot() + 
+  geom_hex(aes(x = launch_angle, y = launch_speed)) 
+```
 
 
