@@ -1,0 +1,35 @@
+---
+title: "Competition"
+author: 
+  - name: Mazie Burt
+    email: mazie.burt@snhu.edu
+    affiliations: 
+      - name: Southern New Hampshire University
+format: html
+date: 1/13/2025
+date-modified: today
+date-format: long
+theme: flatly 
+toc: true
+---
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(kableExtra)
+library(patchwork)
+library(dplyr)
+
+Comp <- read.csv("comp.csv")
+Data <- read.csv("data.csv")
+```
+
+```{r}
+Comp |>
+  head()
+```
+
+```{r}
+Data |>
+  head()
+```
