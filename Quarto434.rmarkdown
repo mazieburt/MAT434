@@ -16,7 +16,11 @@ message: false
 ---
 
 
+
+
 ## Working with Data
+
+
 
 ```{r}
 library(tidyverse)
@@ -29,7 +33,11 @@ hits <- read_csv("https://raw.githubusercontent.com/agmath/agmath.github.io/refs
 parks <- read_csv("https://raw.githubusercontent.com/agmath/agmath.github.io/refs/heads/master/data/classification/park_dimensions.csv")
 ```
 
+
+
 ## Exploring Our Data
+
+
 
 ```{r}
 #head(hits)
@@ -42,28 +50,44 @@ hits %>%
 parks %>% 
   head()
 ```
+
+
 ### Joining the Data 
+
+
 ```{r}
 hits <- hits %>%
   left_join(parks, by = c("park" = "park"))
 ```
 
+
+
 We joined the `hits` and `parks` data together, to obtain a full data set with `r nrow(hits)` rows and `r ncol(hits)` columns. 
 
 
 Initial Explorations 
+
+
 ```{r}
 hits %>% 
   head(10)
 ```
 
 
+
+
 Skimming the data set
+
+
 ```{r}
 hits %>%
   skim()
 ```
+
+
 Split into training and test data 
+
+
 ```{r}
 set.seed(123)
 data_splits <- initial_split(hits, 0.85, strata = is_home_run)
@@ -72,23 +96,35 @@ train <- training(data_splits)
 test <- testing(data_splits)
 ```
 
+
+
 ## Exploratory Data Analysis 
 
 How and why do home runs happen? 
 
 Filtering rows
+
+
 ```{r}
 train %>%
   filter(is_home_run == 1)
 ```
 
+
+
 Selecting just a few columns 
+
+
 ```{r}
 train %>% 
   select(launch_speed, launch_angle, is_home_run)
 ```
 
+
+
 Building new variables from old ones (*Feature Engineering*)
+
+
 
 ```{r}
 train %>%
@@ -98,21 +134,30 @@ train %>%
 
 
 
+
+
 ### Summary Statistics 
 
 Home runs... 
+
+
 
 ```{r}
 train %>% 
   count(is_home_run) %>%
   mutate(prop = n/sum(n))
 ```
+
 ```{r}
 train %>%
   summarize(pct_hr = mean(is_home_run))
 ```
 
+
+
 Summarizing Launch Angle...
+
+
 
 ```{r}
 train %>%
@@ -125,7 +170,11 @@ train %>%
     sd_angle = sd(launch_angle, na.rm = TRUE)
   )
 ```
+
+
 #### Grouped Summaries 
+
+
 
 ```{r}
 train %>%
@@ -140,7 +189,11 @@ train %>%
   )
 ```
 
+
+
 ### Data Visualization 
+
+
 
 ```{r}
 train %>%
@@ -156,19 +209,20 @@ train %>%
   labs(x = "Launch Angle", y = "Density", title = "Density Plot of Launch Angle")
 ```
 
-
 ```{r}
 train %>%
   ggplot() +
   geom_bar(aes(x = pitch_name, fill = "purple")) + 
   labs(x = "Pitch Type", y = "", title = "Distribution of Pitch Types")
 ```
+
 ```{r}
 train |>
   ggplot() +
   geom_density(aes(x = launch_speed, fill = "blue")) + 
   labs(x = "Launch Speed", y = "Density", title = "Density Plot of Launch Speed")
 ```
+
 ```{r}
 train %>% 
   ggplot() +
@@ -183,15 +237,20 @@ train %>%
   geom_density(aes(color = pitch_name, fill = pitch_name), alpha = 0.4, size = 1) +
   facet_wrap(~ pitch_name)
 ```
+
 ```{r}
 train %>% 
   ggplot() + 
   geom_hex(aes(x = launch_angle, y = launch_speed)) 
 ```
 
+
+
 ##Model Construction, Evaluation and Tuning
 
 prep our data...
+
+
 
 ```{r}
 hits_for_model <- hits %>%
@@ -205,7 +264,11 @@ train <- training(data_splits)
 test <- testing(data_splits)
 ```
 
+
+
 fitting a model...
+
+
 
 ```{r}
 dt_spec <- decision_tree() %>%
@@ -226,22 +289,34 @@ dt_fit <- dt_wf %>%
 ```
 
 
+
+
 Let's see the model...
+
+
 ```{r}
 dt_fit %>%
   extract_fit_engine() %>%
   rpart.plot::rpart.plot()
 ```
 
+
+
 Assess our model's performance...
 
 Training data...
+
+
 ```{r}
 dt_fit %>%
   augment(train) %>%
 accuracy(is_home_run, .pred_class)
 ```
+
+
 Testing data...
+
+
 
 ```{r}
 dt_fit %>%
@@ -249,7 +324,11 @@ dt_fit %>%
   accuracy(is_home_run, .pred_class)
 ```
 
+
+
 Cross-Validation 
+
+
 ```{r}
 train_folds <- vfold_cv(train, v = 10, strata = is_home_run)
 
@@ -259,7 +338,11 @@ dt_cv_results <- dt_wf %>%
 dt_cv_results %>%
   collect_metrics()
 ```
+
+
 Tuning our model...
+
+
 ```{r}
 dt_spec <- decision_tree(tree_depth = tune()) %>%
   set_engine("rpart") %>%
