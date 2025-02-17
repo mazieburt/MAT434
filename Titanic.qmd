@@ -538,6 +538,37 @@ log_reg_cv_results <- log_reg_wf %>%
 log_reg_cv_results %>%
   collect_metrics(summarize = FALSE)
 ```
+This model performs reliably across folds. Precision and recall both show variabillity, this means the model may struggle with false negatives or false positives in some cases. 
+
+
+Fit to full training set
+
+```{r}
+log_reg_fit <- log_reg_wf %>%
+  fit(data = train)
+```
+```{r}
+log_reg_preds <- predict(log_reg_fit, new_data = test, type = "class") %>%
+  bind_cols(test)
+```
+
+```{r}
+log_reg_preds %>%
+  metrics(truth = transported, estimate = .pred_class)
+```
+
+```{r}
+log_reg_fit <- log_reg_wf %>%
+  fit(data = test)
+
+log_reg_preds <- predict(log_reg_fit, new_data = test, type = "class") %>%
+  bind_cols(test)
+
+log_reg_preds %>%
+  metrics(truth = transported, estimate = .pred_class)
+```
+
+
 
 ###Support Vector Classifier
 
@@ -606,7 +637,7 @@ svm_linear_tune_results %>%
   show_best(n = 10, metric = "recall") %>%
   kable()
 ```
-
+In this model the recall is constant but limited. Hyperperaneter tunung had minimal effects because there was a wide range of cost values but recall did not change. Yet the model is stable because it has low standard error. 
 
 ```{r}
 show_notes(.Last.tune.result)
@@ -632,5 +663,7 @@ show_notes(.Last.tune.result)
 ## Model Interpretation and Inference
 
 ## Conclusion
+In this analysis we explored the Spaceship Titanic dataset to predict whether passengers would be transported to an alternate dimension. Logistic regression and SVMs were implemented and evaluated as classification models. Tuning hyperparameters and assesing performance using accuracy, precision, and recall were used. The logistic regression provided a simple reliable model which helped us understand the impact of individual features in the likelihood of transportation. The SVM could have been improved with optimized hyper parameters. These models could helo a space travel agency identify high risk passengers. While the logistic regression is useful for interpredibility and optimized version of the SVM may provide better predictive accuracy. 
+
 
 ## References
