@@ -7,10 +7,12 @@ editor: visual
 ---
 title: Spaceship Titanic Investigation
 author: 
+  - name: Adam Gilbert
+    email: a.gilbert1@snhu.edu
   - name: Mazie Burt
     email: mazie.burt@snhu.edu
     affiliations: 
-      - name: Southern New Hampshire University
+    - name: Southern New Hampshire University
 format: html
 date: 9/15/2023
 date-modified: today
@@ -437,7 +439,7 @@ log_reg_fit %>%
 
 ```
 
-Using "marginaleffects"
+Using "marginal effects"
 
 ```{r}
 new_data <- crossing(
@@ -502,16 +504,18 @@ log_reg_fit %>%
   augment(train) %>%
   mutate(
     # correct_flag = ifelse(transported == .pred_class, "yes",
-    #                      ifelse(transported == "yes",
-    #                              "false-negative", "false-positive"))) %>%
+    #                       ifelse(transported == "yes", "false-negative", "false-positive"))
     correct_flag = case_when(
       transported == .pred_class ~ "yes",
       transported == "yes" ~ "false-negative",
-      TRUE ~"false-positive"
-        )
-      group_by(correct_flag) %>%summarize(
-        median_food_spend = median(food_court, na.rm = TRUE)
-      )
+      TRUE ~ "false-positive"
+    )
+  ) %>%
+  group_by(correct_flag) %>%
+  summarize(
+    median_food_spend = median(food_court, na.rm = TRUE)
+  )
+
 ```
 
 ### Machine Learning
@@ -534,6 +538,96 @@ log_reg_cv_results <- log_reg_wf %>%
 log_reg_cv_results %>%
   collect_metrics(summarize = FALSE)
 ```
+
+###Support Vector Classifier
+
+```{r}
+svm_linear_spec <- svm_linear(cost = tune()) %>%
+  set_engine("LiblineaR") %>%
+  set_mode("classification")
+```
+
+
+```{r}
+svm_linear_rec <- recipe(transported ~ ., data = train, kernel = "radial", probability = TRUE) %>%
+  step_rm(passenger_id) %>%
+  step_rm(name) %>%
+  step_rm(cabin) %>%
+  step_impute_median(all_numeric_predictors()) %>%
+  step_impute_mode(all_nominal_predictors()) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_normalize(all_numeric_predictors())
+
+svm_linear_tune_wf <- workflow() %>%
+add_model(svm_linear_spec) %>%
+  add_recipe(svm_linear_rec)
+
+# Print model summary
+summary(svm_linear_spec)
+
+```
+
+
+Hyperparamater Tuning 
+```{r}
+svm_linear_spec <- svm_linear(cost = tune(), margin = tune()) %>%
+  set_engine("LiblineaR") %>%
+  set_mode("classification")
+
+svm_linear_tune_rec <- recipe(transported ~ ., data = train) %>%
+  step_rm(home_planet) %>%
+  step_rm(passenger_id) %>%
+  step_rm(cryo_sleep) %>%
+  step_rm(name) %>%
+  step_rm(destination) %>%
+  step_rm(vip) %>%
+  step_rm(cabin) %>%
+  step_impute_median(all_numeric_predictors()) %>%
+  step_normalize(all_numeric_predictors())
+```
+
+```{r}
+svm_linear_tune_wf <- workflow() %>%
+  add_model(svm_linear_spec) %>%
+  add_recipe(svm_linear_tune_rec)
+```
+
+```{r}
+svm_linear_tune_results <- svm_linear_tune_wf %>%
+  tune_grid(
+    resamples = train_folds,
+    grid = 12,  
+    metrics = metric_set(accuracy,recall)  
+  )
+```
+
+```{r}
+svm_linear_tune_results %>%
+  show_best(n = 10, metric = "recall") %>%
+  kable()
+```
+
+
+```{r}
+show_notes(.Last.tune.result)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Model Interpretation and Inference
 
