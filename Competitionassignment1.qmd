@@ -74,7 +74,7 @@ Our goal is to understand what variables affect the price range of properties li
 ```{r}
 train |>
 ggplot() +
-  geom_bar(aes(x = priceRange, fill = priceRange)) +  # Adjust bar width
+  geom_bar(aes(x = priceRange, fill = priceRange)) +  # Adjust bar wi <- h
   scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
   theme_minimal() +  # Use a cleaner theme
   theme(
@@ -361,6 +361,305 @@ train |>
 The properties with a price range of 0 - 250,000 have a peak for average school rating around 3.5. On the other hand properties in the price range of 650,000+ have a peak at 7. In addition, the price ranges 250,000 - 350,000 and 350,000 - 450,000 are right skewed showing the majority of school ratings are lower while the price range 450,000 - 650,000 is left skewed showing most ratings are higher.
 
 ## Model Construction
+
+First model
+
+```{r}
+log_reg_spec <- logistic_reg() %>%
+  set_engine("glm") %>%
+  set_mode("classification")
+```
+
+```{r}
+log_reg_rec <- recipe(priceRange ~ ., data = train) %>%
+  step_rm(id) %>%
+  step_rm(description) %>%
+  step_impute_median(all_numeric_predictors()) %>%
+  step_impute_mode(all_nominal_predictors()) %>%
+  step_dummy(all_nominal_predictors())
+```
+
+```{r}
+log_reg_wf <- workflow() %>%
+  add_model(log_reg_spec) %>%
+  add_recipe(log_reg_rec)
+```
+
+```{r}
+log_reg_fit <- log_reg_wf %>%
+  fit(train)
+```
+
+```{r}
+log_reg_fit %>%
+  extract_fit_engine() %>%
+  tidy() %>%
+  kable()
+```
+
+Code to make predictions
+
+
+
+
+### Decision Tree
+
+```{r}
+dt_spec <- decision_tree() %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+dt_rec <- recipe(priceRange ~ ., data = train) %>%
+  step_rm(id) %>%
+  step_rm(description) %>%
+  step_impute_median(all_numeric_predictors()) %>%
+  step_impute_mode(all_nominal_predictors()) %>%
+  step_novel() %>%
+  step_dummy(all_nominal_predictors())
+
+
+dt_wf <- workflow() %>%
+  add_model(dt_spec) %>%
+  add_recipe(dt_rec)
+
+dt_fit <- dt_wf %>%
+  fit(train)
+
+```
+
+```{r}
+dt_fit %>%
+  extract_fit_engine() %>%
+  rpart.plot::rpart.plot()
+```
+This decision tree models houding prices based on various features such as average school rating, number of bathrooms, latitude, longitude, and lot size. The first split occurs at an average school rating of 5.5. If the rating is less than 5.5, the homes tend to be cheaper. If the rating is above 5.5, the prices are most in the 450000 - 650000. The decision tree also shows that the location of the house strongly influences prices. Bathroom count affects prices in highly rated school areas. Finally, lot sizes matters in the higher price brackets. 
+
+```{r}
+train_folds <- vfold_cv(train, v = 10)
+
+dt_cv_results <- dt_wf %>%
+  fit_resamples(train_folds)
+
+dt_cv_results %>%
+  collect_metrics()
+
+```
+
+```{r}
+dt_spec <- decision_tree(tree_depth = tune(),   
+  cost_complexity = tune(),   
+  min_n = tune()) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+dt_wf <- workflow() %>%
+  add_model(dt_spec) %>%
+  add_recipe(dt_rec)
+  
+  dt_tune_results <- dt_wf %>%
+  tune_grid(
+    resamples = train_folds,
+    grid = 10
+  )
+  
+dt_tune_results %>%
+  show_best(n = 10, metric = "accuracy")
+
+dt_tune_results <- dt_wf %>%
+  tune_grid(
+    resamples = train_folds
+  )
+
+dt_tune_results %>%
+  show_best(n = 10, metric = "accuracy")
+
+
+best_params <- dt_tune_results %>%
+  select_best(metric = "accuracy")
+```
+
+```{r}
+# Define a Decision Tree specification with multiple tunable hyperparameters
+dt_spec <- decision_tree(
+  tree_depth = tune(),        # Maximum depth of the tree
+  cost_complexity = tune(),   # Complexity parameter (cp)
+  min_n = tune()              # Minimum number of observations per node
+) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+# Define a workflow
+dt_wf <- workflow() %>%
+  add_model(dt_spec) %>%
+  add_recipe(dt_rec)
+
+# Define a grid of hyperparameters for tuning
+dt_grid <- grid_regular(
+  tree_depth(range = c(1, 15)),       
+  cost_complexity(range = c(0.0001, 0.1)),  
+  min_n(range = c(2, 50)),             
+  levels = 10  
+)
+
+# Perform tuning using cross-validation folds
+dt_tune_results <- dt_wf %>%
+  tune_grid(
+    resamples = train_folds, 
+    grid = dt_grid            
+  )
+
+
+dt_tune_results %>%
+  show_best(n = 10, metric = "accuracy")
+
+
+best_params <- dt_tune_results %>%
+  select_best(metric = "accuracy")
+
+
+final_dt_wf <- finalize_workflow(dt_wf, best_params)
+
+
+final_dt_model <- final_dt_wf %>%
+  fit(data = train)
+
+
+```
+
+```{r}
+n_cores <- parallel::detectCores()
+cluster <- parallel::makeCluster(n_cores - 1, type = "PSOCK")
+doParallel::registerDoParallel(cluster)
+
+tictoc::tic()
+
+dt_tune_results <- dt_wf %>%
+  tune_grid(
+    resamples = train_folds,
+    grid = 12,
+    metrics = metric_set(accuracy,precision)
+  )
+```
+
+```{r}
+submission <- dt_fit %>%
+  augment(Comp) %>%
+  rename(
+    prob_A = ".pred_0-250000",
+    prob_B = ".pred_250000-350000",
+    prob_C = ".pred_350000-450000",
+    prob_D = ".pred_450000-650000",
+    prob_E = ".pred_650000+"
+  ) %>%
+  select(id, starts_with ("prob"))
+
+write.csv(submission, "submission.csv", row.names = FALSE)
+```
+
+### Nearest Neighbor
+
+```{r}
+knn_spec <- nearest_neighbor() %>%
+  set_engine("kknn") %>%
+  set_mode("classification")
+
+knn_rec <- recipe(priceRange ~ ., data = train) %>%
+  step_rm(id, description) %>%  
+  step_novel(all_nominal_predictors()) %>%  # Handle unseen categories  
+  step_dummy(all_nominal_predictors()) %>%  # Convert categorical variables to dummy
+  step_impute_median(all_numeric_predictors()) %>%  
+  step_impute_mode(all_nominal_predictors())
+
+
+knn_spec <- nearest_neighbor(
+  neighbors = tune(),  # Number of neighbors to tune
+  weight_func = "rectangular",  
+  dist_power = 2
+) %>%
+  set_engine("kknn") %>%
+  set_mode("classification")
+
+# Create a workflow
+knn_wf <- workflow() %>%
+  add_model(knn_spec) %>%
+  add_recipe(knn_rec)
+
+```
+
+
+
+
+
+```{r}
+set.seed(123)
+train_folds1 <- vfold_cv(train, v = 10) # 10-fold cross-validation
+
+
+knn_grid <- grid_regular(
+  neighbors(range = c(1, 30)),  # Ensure correct range definition
+  levels = 10
+)
+
+knn_tune_results <- knn_wf %>%
+  tune_grid(
+    resamples = train_folds1,
+    grid = knn_grid
+  )
+
+knn_tune_results %>%
+  show_best(n = 10, metric = "accuracy")
+
+
+best_k <- knn_tune_results %>%
+  select_best(metric = "accuracy")
+
+final_knn_wf <- knn_wf %>%
+  finalize_workflow(best_k)
+
+# Fit the final model on the entire training set
+knn_fit <- final_knn_wf %>%
+  fit(data = train)
+```
+This table shows the result of tuning the k-nearest neigbors by varying the number of neighbors and evaluating the accuracy. The performance metric used is accuracy. The best accuracy is at neighbors = 20, meaning this is the optimal k value in this test.The higher k values beform best while very small and very large values lead to lower accuracy. The standard error is relatively small, meaning the accuracy estimates are stable across re samples. 
+
+```{r}
+submission <- knn_fit %>%
+  augment(Comp) %>%
+  rename(
+    prob_A = ".pred_0-250000",
+    prob_B = ".pred_250000-350000",
+    prob_C = ".pred_350000-450000",
+    prob_D = ".pred_450000-650000",
+    prob_E = ".pred_650000+"
+  ) %>%
+  select(id, starts_with ("prob"))
+
+write.csv(submission, "submission.csv", row.names = FALSE)
+```
+
+
+### Random Forest
+
+```{r}
+rf_tune_spec <- rand_forest(trees = tune()) %>%
+  set_engine("ranger") %>%
+  set_mode("classification")
+
+rf_tune_rec <- recipe(priceRange ~ ., data = train) %>%
+   step_rm(id) %>%
+   step_rm(description) %>%
+  step_unknown(all_nominal_predictors()) %>%
+  step_novel(all_nominal_predictors()) %>%
+  step_other(all_nominal_predictors(), threshold = tune()) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_impute_median(all_numeric_predictors()) 
+
+rf_wf <- workflow() %>%
+  add_model (rf_tune_spec) %>%
+  add_recipe (rf_tune_rec)
+```
+
+
 
 ## Model Interpretation and Inference
 
