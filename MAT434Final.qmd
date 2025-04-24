@@ -1,0 +1,684 @@
+---
+title: "Final Project"
+format: html
+editor: visual
+author: 
+  - name: Mazie Burt
+    email: mazie.burt@snhu.edu
+    affiliations: 
+      - name: Southern New Hampshire University
+date: 1/08/2025
+date-modified: today
+date-format: long
+theme: flatly 
+toc: true
+code-fold: true
+message: false 
+---
+
+```{r}
+
+#| echo: false
+#| message: false
+#| warning: false
+
+
+library(tidyverse)
+library(tidymodels)
+library(kableExtra)
+library(patchwork)
+library(dplyr)
+
+options(kable_styling_bootstrap_options = c("hover", "striped"))
+
+theme_set(theme_bw(base_size = 14))
+
+```
+
+### Read in Data
+```{r}
+library(readr)
+library(rsample)
+data <- read_csv("/Users/mazieburt/Downloads/updated_pollution_dataset.csv")
+colnames(data) <- gsub(" ", "_", colnames(data))
+set.seed(123)
+data_splits <- initial_split(data, prop = 0.85, strata = Air_Quality)
+train <- training(data_splits)
+test <- testing(data_splits)
+colnames(train) <- gsub(" ", "_", colnames(train))
+colnames(test) <- gsub(" ", "_", colnames(test))
+```
+
+
+## Statement of Purpose
+I propose to develop a highly accurate predictive model that estimates air quality as good, moderate, poor, or hazardous using a comprehensive data set including pollution indicators, weather metrics, and geographic variables. This analysis aims to inform efforts to improve air quality by identifying the key contributors to air quality. These insights will support evidence-based policy and intervention strategies to mitigate pollution and improve public health outcomes.
+
+## Executive Summary
+This analysis pursued the development of a predictive model to estimate the air quality level using a dataset of pollution indicators, weather metrics, and geographic variables. The goal was to identify the major contributors to air quality and provide evidence-based recommendations to inform global efforts to achieve improved air quality. The findings are intended to aid decision-makers in designing strategies that mitigate pollution and ultimately improve public health outcomes. This works supports a broader goal of creating healthier, more sustainable communities through evidence-based approaches. The logistic regression model and the decision tree model showed that CO was very strongly correlated with air quality level. Both of these models provided strong reasoning to support efforts in reducing CO emissions and distancing people from industrial areas to improve air quality levels. 
+
+
+## Introduction
+
+Air pollution is becoming a global issue and can lead to many consequences for humans and the environment as a whole. Air quality is a way of showing the amount of pollution in the air and is measured with the AQI (Air Quality Index). Air pollution is a risk for all-cause mortality as well as specific diseases that include heart disease, stroke, chronic obstructuve pulminary disease (COPD), lung cancer, and many more (WHO, n.d.). As urbanization and industrial activity continue to rise, understanding and predicting air quality has become more important than ever for policymakers, urban planners, and environmental scientists. 
+This report focuses on the development of predictive models for air quality levels using a comprehensive dataset that includes environmental and socio-economic variables. Air quality level is the target variable, alongside the predictors carbon monoxide (CO), nitrogen dioxide (NO2), sulfur dioxide (SO2), PM2.5, PM10, humidity, temperature, population density, and proximity to industrial areas. 
+The objective of this analysis is to explore the relationship between these variables and air quality and identify the most significant predictors. This report aims to uncover insights that can support targeted interventions and inform strategies to mitigate the impacts of air pollution. The next sections include exploratory data analysis, model selection, and performance evaluation. The ultimate goal is to not only build predictive models, but also enhance our understanding of the drivers of air quality fluctuations. 
+
+## Exploratory Data Analysis 
+In this section we aim to understand the air quality across various regions using available predictors. We aim to identify predictors that may be associated with the air quality level. We will be working with 4250 observations in the train data set. 
+
+```{r}
+data |>
+  head()
+```
+This is showing the first six rows of the entire data set. It shows the temperature, humidity, PM2.5, PM10, NO2, SO2, CO, Proximity to Industrial Areas, Popualtion Density, and Air Quality variables. 
+
+```{r}
+train |> 
+  head()
+```
+This is showing the first six rows of the train data set including the same information as mentioned previously. 
+
+### Air-Quality Variable
+It is essential to first understand the distribution of Air Quality in this data set. 
+```{r}
+train <- train |> 
+  mutate(`Air_Quality` = factor(`Air_Quality`, levels = c("Good", "Moderate", "Poor", "Hazardous")))
+
+train |>
+ggplot() +
+  geom_bar(aes(x = `Air_Quality`, fill = `Air_Quality`)) +  # Adjust bar wi <- h
+  scale_fill_manual(values = c("Good" = "green", "Moderate" = "yellow", "Poor" = "orange", "Hazardous" = "red")) + 
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "Air Quality Distribution",
+    x = "Air Quality",
+    y = "Count"
+  )
+```
+Number of observations with "Good" Air Quality
+
+```{r}
+good_count <- sum(train$Air_Quality == "Good")
+print(good_count)
+```
+
+Number of observations with "Moderate" Air Quality
+
+```{r}
+moderate_count <- sum(train$Air_Quality == "Moderate")
+print(moderate_count)
+```
+
+
+Number of observations with "Poor" Air Quality
+
+```{r}
+poor_count <- sum(train$Air_Quality == "Poor")
+print(poor_count)
+```
+
+
+Number of observations with "Hazardous" Air Quality
+
+```{r}
+hazardous_count <- sum(train$Air_Quality == "Hazardous")
+print(hazardous_count)
+```
+
+
+This graph shows that the majority of observations in the train data set have a "good" air quality with 1700 observations having "Good" air quality. Moderate air quality is the next most freqeuent level with 1275 observations. 850 observations have poor air quality and 425 observations have hazardous air quality. 
+
+### Temperature Variable 
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = Temperature, fill = Temperature)) +
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "Tempearture Distribution",
+    x = "Temperature",
+    y = "Count"
+  )
+```
+The temperature variable distribution shows the average temperature of the region There are very few values from 0 to 20 degrees celsius and then there is a steep increase until just below 30 degrees celsius where the data peaks. There is a steady decline from 30 degrees celsius to 50 degrees celsius with very few values higher than 50 degrees celsius. 
+
+
+#### Temperature vs. Air Quality 
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = Temperature, fill = `Air_Quality`)) +
+  scale_fill_manual(values = c("Good" = "green", "Moderate" = "yellow", "Poor" = "orange", "Hazardous" = "red")) + 
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "Tempearture Distribution",
+    x = "Temperature",
+    y = "Count"
+  )
+```
+Green or good air quality dominates at the lower temperatures (15 - 30°C), this suggests that cooler temperatures are associated with cleaner air. Yellow or moderate air quality peakes in the 25-35°C range, this indicates a transition zone where air quality begins to decline. Orange or poor air quality is the most prevelsnt in 30-40°C range, air wuality worsens as temperature rises. This could be due to increased pollution or atmospheric conditions that trap pollutants. Red or hazardous air quality is prominent at temperatures above 35-40°C, especially nearing 50°C, this suggests that extreme heat is strongly associated with dangerous air quality. 
+
+### Humidity Variable 
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = Humidity, fill = Humidity)) +
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "Humidity Distribution",
+    x = "Humidity",
+    y = "Count"
+  )
+```
+The humidity variable distribution shows the relative humidity recorded in the region. The peak of the humidity distribution is around 75% witht the majority of the data lying between 50% and 100% humidity with few observations below 50% and above 100%. 
+
+#### Humidity vs. Air Quality 
+
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = Humidity, fill = `Air_Quality`)) +
+  scale_fill_manual(values = c("Good" = "green", "Moderate" = "yellow", "Poor" = "orange", "Hazardous" = "red")) + 
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "Humidity Distribution",
+    x = "Humidity",
+    y = "Count"
+  )
+```
+The humidity ranges between approximately 20% to 130% with Good air quality being most freqent between 35% to 75%.The presence of Moderate air quality increase at about 60% humidity and is the most common between about 65% to 85% humidity. Poor and hazardous air quality dominate when humidity is above 80% and hazardous air quality takes over when humisity is above 100%. 
+
+
+### PM2.5 Variable 
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = PM2.5, fill = PM2.5)) +
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "PM2.5 Distribution",
+    x = "PM2.5",
+    y = "Count"
+  )
+```
+#### PM2.5 vs. Air Quality 
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = PM2.5, fill = `Air_Quality`)) +
+  scale_fill_manual(values = c("Good" = "green", "Moderate" = "yellow", "Poor" = "orange", "Hazardous" = "red")) + 
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "PM2.5 Distribution",
+    x = "PM2.5",
+    y = "Count"
+  )
+```
+Observations with good air quality are heavily concentrated whem PM2.5 is between 0-20 µg/m³ and peaks around 5-10 µg/m³. Moderate air quality shows up at PM2.5 around 10-30 µg/m³. Poor air quality is present from a PM2.5 of 0 to 100 yet becomes a bigger portion of the observations about 50 µg/m³. Finally, hazardous air quality dominates the observations over 100 µg/m³ and stretches up to 300 µg/m³ in rare cases. 
+
+### PM10 Variable
+
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = PM10, fill = PM10)) +
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "PM10 Distribution",
+    x = "PM10",
+    y = "Count"
+  )
+```
+#### PM10 vs. Air Quality
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = PM10, fill = `Air_Quality`)) +
+  scale_fill_manual(values = c("Good" = "green", "Moderate" = "yellow", "Poor" = "orange", "Hazardous" = "red")) + 
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "PM10 Distribution",
+    x = "PM10",
+    y = "Count"
+  )
+```
+The majority of PM10 values are concentrated below 50 µg/m³ where air quality is mostly good and moderate. Moderate air quality is dominate at about 40-60 µg/m³. Then poor and hazardous air quality is dominate when PM10 is 70 µg/m³ or higher. 
+
+
+### NO2 Variable
+
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = NO2, fill = NO2)) +
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "NO2 Distribution",
+    x = "NO2",
+    y = "Count"
+  )
+```
+There is a steep incline of NO2 values from 10 ppb to its peak at about 25 ppb. After the peak from about 20-25 ppb there is a steady decline until just below 60 ppb of NO2. 
+
+#### NO2 vs. Air Quality 
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = NO2, fill = `Air_Quality`)) +
+  scale_fill_manual(values = c("Good" = "green", "Moderate" = "yellow", "Poor" = "orange", "Hazardous" = "red")) + 
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "NO2 Distribution",
+    x = "NO2",
+    y = "Count"
+  )
+```
+Low to moderate levels of NO2 are associated with good and moderate air quality levels, this is approximately 30 ppb and lower. After that threshold there is rising numbers of observations that have poor and hazardous air quality levels.
+
+
+### SO2 Variable 
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = SO2, fill = SO2)) +
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "SO2 Distribution",
+    x = "SO2",
+    y = "Count"
+  )
+```
+This graph shows that the SO2 values are right skewed with a peak at around 5-7 ppb. 
+#### SO2 vs. Air Quality
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = SO2, fill = `Air_Quality`)) +
+  scale_fill_manual(values = c("Good" = "green", "Moderate" = "yellow", "Poor" = "orange", "Hazardous" = "red")) + 
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "SO2 Distribution",
+    x = "SO2",
+    y = "Count"
+  )
+```
+Good air quality is dominate from about 2-8 ppb, around 10 ppb moderate air quality is prominant. Poor air quality is present at most SO2 levels yet it is most common at around 18 ppb. When SO2 levels are over 30 there are very few observations yet they are mostly hazardous air quality. 
+
+### CO Variable 
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = CO, fill = CO)) +
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "CO Distribution",
+    x = "CO",
+    y = "Count"
+  )
+```
+CO levels are also right skewed with a peak at around 1ppm. 
+
+#### CO vs. Air Quality 
+
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = CO, fill = `Air_Quality`)) +
+  scale_fill_manual(values = c("Good" = "green", "Moderate" = "yellow", "Poor" = "orange", "Hazardous" = "red")) + 
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "CO Distribution",
+    x = "CO",
+    y = "Count"
+  )
+```
+This graph shows that good air quality is extremely dominant at around 1ppm. Moderate air quality is prominant at 1.25ppm to 2.5ppm. Poor air quality is present mostly around 2 ppm and hazardous air quality takes over when CO values are 3ppm or higher. 
+
+### Industrial_Areas Variable
+
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = Proximity_to_Industrial_Areas, fill = Proximity_to_Industrial_Areas)) +
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "Proximity_to_Industrial_Areas Distribution",
+    x = "Proximity_to_Industrial_Areas",
+    y = "Count"
+  )
+```
+This proximity to industrial areas graph is bimodal showing a peak at about 5km from the nearest industrial zone and another peak at just over 10km from the nearest industrial zone. 
+
+#### Proximity to industrial areas vs. Air Quality 
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = Proximity_to_Industrial_Areas, fill = `Air_Quality`)) +
+  scale_fill_manual(values = c("Good" = "green", "Moderate" = "yellow", "Poor" = "orange", "Hazardous" = "red")) + 
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "Proximity_to_Industrial_Areas Distribution",
+    x = "Proximity_to_Industrial_Areas",
+    y = "Count"
+  )
+```
+
+Locations that are 1 to 3km away from industrial areas prodominantly have hazardous air quality. Poor air quality is dominant in areas that are 3 to 5km away from industrial areas. Moderate air quality is dominant from about 5 to 9km away from industrial areas. Locations that are 10km or further away from industrial areas mostly have good air quality. 
+
+### Population_Density Variable
+
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = Population_Density, fill = Population_Density)) +
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "Population_Density",
+    x = "Population_Density",
+    y = "Count"
+  )
+```
+This graph shows a very slight right skew with the majority of observations having a population density of about 450 to 650 people/km^2. 
+
+#### Population Density vs. Air Quality
+```{r}
+train |> 
+  ggplot() +
+  geom_histogram(aes(x = Population_Density, fill = `Air_Quality`)) +
+  scale_fill_manual(values = c("Good" = "green", "Moderate" = "yellow", "Poor" = "orange", "Hazardous" = "red")) + 
+  scale_y_continuous(expand = c(0, 0)) +  # Remove extra space above bars
+  theme_minimal() +  # Use a cleaner theme
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+    legend.position = "none"  # Remove legend if not needed
+  ) +
+  labs(
+    title = "Population_Density",
+    x = "Population_Density",
+    y = "Count"
+  )
+```
+Observations with lower population densities (<400) tend to have good or moderate air quality. Beyond 600 people/km^2 there is an increase in poor and hazardous air quality. Poor and hazardous are quality become dominant at or above 740 people/km^2. 
+
+## Model Construction
+
+Logistic Regression 
+```{r}
+log_reg_spec <- logistic_reg() %>%
+  set_engine("glm") %>%
+  set_mode("classification")
+```
+
+```{r}
+log_reg_rec <- recipe(Air_Quality ~ ., data = train) %>%
+  step_impute_median(all_numeric_predictors()) 
+```
+
+```{r}
+log_reg_wf <- workflow() %>%
+  add_model(log_reg_spec) %>%
+  add_recipe(log_reg_rec)
+```
+
+```{r}
+log_reg_fit <- log_reg_wf %>%
+  fit(train)
+```
+
+```{r}
+log_reg_fit %>%
+  extract_fit_engine() %>%
+  tidy() %>%
+  kable()
+```
+
+### KNN
+
+```{r}
+knn_spec <- nearest_neighbor() %>%
+  set_engine("kknn") %>%
+  set_mode("classification")
+
+knn_rec <- recipe(Air_Quality ~ ., data = train) %>%
+  step_impute_median(all_numeric_predictors()) 
+
+knn_spec <- nearest_neighbor(
+  neighbors = tune(),  # Number of neighbors to tune
+  weight_func = "rectangular",  
+  dist_power = 2
+) %>%
+  set_engine("kknn") %>%
+  set_mode("classification")
+
+# Create a workflow
+knn_wf <- workflow() %>%
+  add_model(knn_spec) %>%
+  add_recipe(knn_rec)
+
+set.seed(123)
+train_folds <- vfold_cv(train, v = 10) # 10-fold cross-validation
+
+knn_grid <- grid_regular(
+  neighbors(range = c(1, 30)),  # Ensure correct range definition
+  levels = 10
+)
+
+knn_tune_results <- knn_wf %>%
+  tune_grid(
+    resamples = train_folds,
+    grid = knn_grid
+  )
+
+knn_tune_results %>%
+  show_best(n = 10, metric = "accuracy")
+
+
+best_k <- knn_tune_results %>%
+  select_best(metric = "accuracy")
+
+final_knn_wf <- knn_wf %>%
+  finalize_workflow(best_k)
+
+# Fit the final model on the entire training set
+knn_fit <- final_knn_wf %>%
+  fit(data = train)
+
+```
+This shows that the best model has 13 nearest neighbors with an accuracy of about 0.93 and a small standard error. 
+
+### Decision Tree
+```{r}
+
+library(rpart.plot)
+
+dt_spec <- decision_tree(
+  tree_depth = 4,
+  min_n = tune(),
+  cost_complexity = tune()
+) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+dt_rec <- recipe(Air_Quality ~ ., data = train) %>%
+  step_impute_median(all_numeric_predictors()) 
+
+dt_wf <- workflow() %>%
+  add_model(dt_spec) %>%
+  add_recipe(dt_rec)
+
+set.seed(123)
+train_folds1 <- vfold_cv(train, v = 5)
+
+dt_results <- tune_grid(
+  dt_wf,
+  resamples = train_folds1,
+  grid = 20,  
+  metrics = metric_set(accuracy, roc_auc)
+)
+
+dt_results %>%
+  show_best()
+
+best_params <- dt_results %>% select_best()
+
+dt_final_spec <- finalize_model(dt_spec, best_params)
+
+dt_final_wf <- workflow() %>%
+  add_model(dt_final_spec) %>%
+  add_recipe(dt_rec)
+
+dt_fit <- fit(dt_final_wf, data = train)
+
+preds <- predict(dt_fit, new_data = test, type = "class")
+
+rpart.plot(extract_fit_engine(dt_fit))
+
+```
+
+### Random Forest
+```{r}
+rf_tune_spec <- rand_forest(trees = tune()) %>%
+  set_engine("ranger") %>%
+  set_mode("classification")
+
+rf_tune_rec <- recipe(Air_Quality ~ ., data = train) %>%
+  step_impute_median(all_numeric_predictors()) 
+
+rf_wf <- workflow() %>%
+  add_model (rf_tune_spec) %>%
+  add_recipe (rf_tune_rec)
+
+rf_results <- tune_grid(
+  rf_wf,               # your workflow
+  resamples = train_folds,  # cross-validation folds
+  grid = 10,           # or a custom grid
+  metrics = metric_set(accuracy, roc_auc)
+)
+
+rf_results %>%
+  show_best(metric = "accuracy", n = 5)
+```
+
+```{r}
+autoplot(rf_results)
+```
+This model shows that approximately 369 trees have the highest accuracy and a fairly high roc_auc. 
+
+## Model Interpretation and Inference
+
+When looking at these models the decision tree and logistic regression models were the most helpful in identifying variables that contribute to air quality level. 
+
+### Logistic Regression Model 
+This logistic regression model shows that a higher temperature is associated with an increased odds of worse air quality, with an estimate of 0.574. This association is statistically significant, with a p-value = 0.0000622. More humidity is weakly associated with worsening air quality, with an estimate of 0.097. The association is still statistically significant at p-value = 0.0246436. Higher levels of PM2.5 are associated with better air quality, with an estimate of -0.581, and are statistically significant with a p-value = 0.0000594. Higher levels of PM10 are associated with worse air quality and have an estimate of 0.602. It is statistically significant with a p-value = 0.0000259. NO2 and SO2 both are positively associated, as they increase, the air quality worsens; they have estimates of 0.391 and 0.652, respectively. They are both statistically significant with a p-value of 0.0006879 and 0.0003726. CO has a huge association with an estimate of 26.208, showing that when CO increases, air quality worsens significantly. It is also extremely statistically significant with a p-value < 0.0000001. This model is showing that proximity to industrial areas is associated with better air quality, which seems counterintuitive and should be investigated. Finally, population density has a small but significant positive effect. 
+
+
+### Decision Tree
+This decision tree shows that 40% of the observations have good air quality. Then the decision tree further splits the observations on CO < 1.2. When looking at observations with CO less than 1.2 ppm, 95% have good air quality. The observations with CO < 1.2 ppm are split into proximity to industrial areas >= 9.7km. If observations have CO less than 1.2 ppm and are 9.7 km or further away from industrial areas, 100% of the observations have good air quality. If the observations are less than 9.7 km away, 92% of observations have moderate air quality. To go back to the right subtree where observations have CO > 1.2 ppm. 48% of observations with CO > 1.2 ppm have moderate air quality, and 34% have poor air quality. The tree then splits on CO < 1.8 ppm; 82% of observations with CO<1.8 ppm have moderate air quality. From there, the tree splits on proximity to industrial areas >= 5km. 89% of observations >= 5km away from industrial areas have moderate air quality, while 93% of observations within 5km of an industrial area have poor air quality. When CO is greater than 1.8 ppm, 57% of observations have poor air quality, and 37% have hazardous air quality. The tree then splits with CO < 2.4, out of observations with CO less than 2.4 ppm, 69% have poor air quality. The tree then splits with proximity to industrial areas >= 3.4 km. If proximity to industrial areas is >= 3.4 km, 75% of observations have poor quality, and if proximity to industrial areas is < 3.4 km, 96% have hazardous air quality. When looking at observations with CO > 2.4, 20% have poor air quality, and 80% have hazardous air quality. This model shows that CO is a very strong predictor of air quality, has all observations with CO >= 2.4ppm have either poor or hazardous air quality. It also identifies proximity to industrial areas as a strong predictor. 
+
+### Other Models 
+The KNN model and the random forest model do not show variable importance as much as the other models as they either do not show variable importance or it is harder to interpret or relative. 
+
+
+## Conclusion
+
+This analysis developed predictive models to classify air quality into categories of good,  moderate, poor, or hazardous, using a dataset of pollution indicators, weather metrics, and geographic characteristics. The primary goal was to identify the most significant contributors to air quality variation. This result will help to provide data-driven insights to support environmental health and urban policy planning. Both the logistic regression model and the decision tree model revealed carbon monoxide (CO) as the most influential factor in determining air quality levels. Across both approaches, higher CO levels were consistently and strongly associated with deteriorating air quality. The logistics regression model produced a particularly large effect and extremely high statistical significane. This finding strongly supports the prioritization of efforts to reduce CO emissions, especially in urban and insustrialized areas, as a key strategy for improving air quality. Proximity to industrial areas also emerged as an important predictor. The decision tree model highlighted that observations located closer to industrial zones were substantially more likely to experience poor or hazardous air quality, especially coupled with elevated CO levels. These insights suggest zoning decisions and urban planning policies that increase resedential distance from industrial sources would play a meaningful role in mitigating humans exposure to air pollution. 
+Other variables such as NO2, SO2, PM10, and temperature also showed statistically significant associations with worsening air quality. This reinforces their known contributions to air pollution. Interestingly, PM2.5 was found to be negatively associated with poor air quality in the logistic regression model. This result is counterintuitive and may require further investigation. Overall, this analysis supports a set of actionable recommendations: reduce CO emissions, especially in high-density and industrial zones and improving zoning regulations. This can be coupled withe many other actions to reduce air pollution all together. By applying these strategies, communities can work toward healthier air and improved public health outcomes. This study contributes to the growing body of research that informs sustainable development and supports the creation of cleaner environments for future generations. 
+
+
+## References
+
+How is air quality measured?. NOAA SciJinks – All About Weather. (n.d.). https://scijinks.gov/air-quality/#:~:text=Air%20quality%20is%20measured%20with,of%20pollution%20in%20the%20air.&text=Air%20quality%20is%20a%20measure,or%20polluted%20the%20air%20is. 
+
+Mateen, M. (2024, December 4). Air Quality and pollution assessment. Kaggle. https://www.kaggle.com/datasets/mujtabamatin/air-quality-and-pollution-assessment 
+
+World Health Organization. (n.d.-a). Health impacts. World Health Organization. https://www.who.int/teams/environment-climate-change-and-health/air-quality-energy-and-health/health-impacts#:~:text=Air%20pollution%20is%20a%20risk,(household%20air%20pollution%20only). 
